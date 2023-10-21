@@ -1,9 +1,13 @@
 const Keyv = require('keyv');
 const axios = require('axios');
+const { isEnabled } = require('../utils');
+const keyvRedis = require('../../cache/keyvRedis');
 // const { getAzureCredentials, genAzureChatCompletion } = require('../../utils/');
 const { openAIApiKey, userProvidedOpenAI } = require('./EndpointService').config;
 
-const modelsCache = new Keyv({ namespace: 'models' });
+const modelsCache = isEnabled(process.env.USE_REDIS)
+  ? new Keyv({ store: keyvRedis })
+  : new Keyv({ namespace: 'models' });
 
 const { OPENROUTER_API_KEY, OPENAI_REVERSE_PROXY, CHATGPT_MODELS, ANTHROPIC_MODELS } =
   process.env ?? {};
@@ -28,7 +32,7 @@ const fetchOpenAIModels = async (opts = { azure: false, plugins: false }, _model
   }
 
   if (reverseProxyUrl) {
-    basePath = reverseProxyUrl.match(/.*v1/)[0];
+    basePath = reverseProxyUrl.match(/.*v1/)?.[0];
   }
 
   const cachedModels = await modelsCache.get(basePath);
